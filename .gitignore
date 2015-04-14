@@ -9,3 +9,6 @@
 *.sh
 config/ide/idea/lib/kotlin-reflect.jar
 config/ide/idea/lib/kotlin-runtime.jar
+.gradle
+.idea
+lwjgl3.iml

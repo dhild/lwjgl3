@@ -1,0 +1,10 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: http://lwjgl.org/license.php
+ */
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}
+
+
