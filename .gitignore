@@ -7,3 +7,5 @@
 .DS_Store
 *.bat
 *.sh
+config/ide/idea/lib/kotlin-reflect.jar
+config/ide/idea/lib/kotlin-runtime.jar
