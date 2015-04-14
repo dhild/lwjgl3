@@ -7,4 +7,12 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.3'
 }
 
+apply plugin: 'java'
 
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/core']
+        }
+    }
+}
