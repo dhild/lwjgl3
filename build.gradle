@@ -70,3 +70,48 @@ task generate(type: JavaExec) {
 
 compileJava.dependsOn 'generate'
 
+/*
+ * Native Library Configuration:
+ */
+
+apply plugin: 'c'
+
+model {
+    components {
+        lwjgl(NativeLibrarySpec) {
+            binaries.all {
+                if ( toolChain in VisualCpp ) {
+                    sources {
+                        platformC(CSourceSet) {
+                            source.srcDir 'src/native/system'
+                            source.srcDir 'src/native/system/libffi'
+                            source.srcDir 'generated/native/system'
+                            source.srcDir 'generated/native/system/libffi'
+                            source.srcDir 'generated/native/system/windows'
+                            source.srcDir 'generated/native/glfw'
+                            source.srcDir 'generated/native/openal'
+                            source.srcDir 'generated/native/opencl'
+                            source.srcDir 'generated/native/opengl'
+                            source.srcDir 'generated/native/opengl/wgl'
+                            source.include '*.c'
+                        }
+                    }
+                    cCompiler.define "LWJGL_WINDOWS"
+                    cCompiler.args "/Wall", "/WX", "/wd4996", "/EHsc", "/Ox", "/Gy", "/MT", "/MP", "/nologo"
+                    cCompiler.args "/I${file('src/native/system')}"
+                    cCompiler.args "/I${file('src/native/system/windows')}"
+                    cCompiler.args "/I${file('src/native/system/libffi')}"
+                    cCompiler.args "/I${file('src/native/glfw')}"
+                    cCompiler.args "/I${file('src/native/openal')}"
+                    cCompiler.args "/I${file('src/native/opencl')}"
+                    cCompiler.args "/I${file('src/native/opengl')}"
+                    cCompiler.args "/I${file('src/native/opengl/wgl')}"
+                    cCompiler.args "/I${System.properties['java.home']}/../include"
+                    cCompiler.args "/I${System.properties['java.home']}/../include/win32"
+                    linker.args '/LD', '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
+                    linker.args "Kernel32.lib", "user32.lib", "Gdi32.lib", "winmm.lib", "shell32.lib", "OpenGL32.Lib"
+                }
+            }
+        }
+    }
+}
