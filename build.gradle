@@ -7,7 +7,20 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.3'
 }
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:0.11.91'
+    }
+}
+
 apply plugin: 'java'
+apply plugin: 'kotlin'
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
 
 sourceSets {
     main {
@@ -15,4 +28,57 @@ sourceSets {
             srcDirs = ['src/core']
         }
     }
+    templates {
+        java {
+            srcDirs = ['src/templates', 'config']
+        }
+    }
 }
+
+configurations {
+    kotlinCompile
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    templatesCompile 'org.jetbrains.kotlin:kotlin-stdlib:0.11.91'
+    templatesCompile files("${System.properties['java.home']}/../lib/tools.jar")
+}
+
+
+
+//<target name="-compile-templates" description="Compiles the Templates module" depends="-init-compile" unless="templates-uptodate">
+//<!-- Compile Java dependencies -->
+//<javac debug="yes" destdir="${bin}/Templates" encoding="utf8" source="1.6" target="1.6" bootclasspathref="${jdk.boot.classpath}" taskname="Java dependencies">
+//<src path="${src.templates}"/>
+//<include name="org/lwjgl/**"/>
+//</javac>
+//
+//		<!-- Compile Kotlin code -->
+//		<echo message="Compiling Kotlin templates. This will take several seconds..." level="info" taskname="Templates"/>
+//<java
+//classpath="${kotlinc}/lib/kotlin-preloader.jar"
+//classname="org.jetbrains.kotlin.preloading.Preloader"
+//fork="true" failonerror="true" taskname="Templates"
+//>
+//<jvmarg value="-server"/>
+//<jvmarg value="-Xms1024m"/>
+//<jvmarg value="-Xverify:none"/>
+//
+//<jvmarg value="-Dorg.lwjgl.templates.output=${bin.templates}"/>
+//
+//<arg line="${kotlinc}/lib/kotlin-compiler.jar${path.separator}${kotlinc}/lib/kotlin-runtime.jar"/>
+//<arg line="org.jetbrains.kotlin.cli.jvm.K2JVMCompiler 4096 notime"/>
+//
+//<arg line="-module ${config}/Templates.ktm"/>
+//<!--
+//        <arg value="-Xno-call-assertions"/>
+//<arg value="-Xno-param-assertions"/>
+//           -->
+//</java>
+//
+//		<touch file="${bin.templates}/touch.txt"/>
+//</target>
