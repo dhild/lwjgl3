@@ -2,6 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
+import org.apache.tools.ant.taskdefs.condition.Os
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.3'
@@ -25,7 +26,12 @@ targetCompatibility = 1.6
 sourceSets {
     main {
         java {
-            srcDirs = ['src/core', 'generated/java']
+            srcDirs = ['src/core', 'src/util', 'generated/java']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/tests']
         }
     }
     templates {
@@ -52,6 +58,8 @@ dependencies {
     kotlinRuntime 'org.jetbrains.kotlin:kotlin-runtime:0.11.91'
     templatesCompile files("${System.properties['java.home']}/../lib/tools.jar")
     compile files("${System.properties['java.home']}/../lib/tools.jar")
+
+    testCompile 'org.testng:testng:6.8.13'
 }
 
 sourceSets.main.compileClasspath += sourceSets.templates.output
@@ -69,6 +77,30 @@ task generate(type: JavaExec) {
 }
 
 compileJava.dependsOn 'generate'
+
+test {
+    jvmArgs '-Xcheck:jni'
+    enableAssertions = true
+    systemProperty 'org.lwjgl.util.Debug', 'true'
+    //systemProperty 'java.library.path', "" ---> bin, libs
+
+    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+        jvmArgs '-XstartOnFirstThread'
+    }
+
+    useTestNG {
+        suites 'config/tests.xml'
+        if (Os.isFamily(Os.FAMILY_UNIX)) {
+            suites 'config/tests_linux.xml'
+        }
+        if (Os.isFamily(Os.FAMILY_MAC)) {
+            suites 'config/tests_macosx.xml'
+        }
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            suites 'config/tests_windows.xml'
+        }
+    }
+}
 
 /*
  * Native Library Configuration:

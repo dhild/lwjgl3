@@ -12,3 +12,4 @@ config/ide/idea/lib/kotlin-runtime.jar
 .gradle
 config/ide/idea/lwjgl3.iml
 build
+config/ide/idea/.idea/libraries/Gradle__*
