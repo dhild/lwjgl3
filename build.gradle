@@ -85,7 +85,12 @@ task generate(type: JavaExec) {
     args "${file('generated')}"
 }
 
-compileJava.dependsOn 'generate'
+compileJava {
+    dependsOn 'generate'
+    // Supresses internal API (e.g. Unsafe) usage warnings
+    options.compilerArgs << "-XDignore.symbol.file=true"
+    options.fork = true
+}
 
 tasks.withType(JavaCompile) {
     options {
