@@ -159,6 +159,28 @@ task updateWindowsX86 {
     }
 }
 
+task updateLinuxX64 {
+    outputs.file("$buildDir/libs/linux/x64/libopenal.so")
+    outputs.file("$buildDir/libs/linux/x64/libglfw3.a")
+    outputs.file("$buildDir/libs/linux/x64/libffi.a")
+    doLast {
+        updateDependency('linux/x64', 'libopenal.so')
+        updateDependency('linux/x64', 'libglfw3.a')
+        updateDependency('linux/x64', 'libffi.a')
+    }
+}
+
+task updateLinuxX86 {
+    outputs.file("$buildDir/libs/linux/x86/libopenal.so")
+    outputs.file("$buildDir/libs/linux/x86/libglfw3.a")
+    outputs.file("$buildDir/libs/linux/x86/libffi.a")
+    doLast {
+        updateDependency('linux/x86', 'libopenal.so')
+        updateDependency('linux/x86', 'libglfw3.a')
+        updateDependency('linux/x86', 'libffi.a')
+    }
+}
+
 model {
     buildTypes {
         debug
@@ -176,12 +198,22 @@ model {
         libs(PrebuiltLibraries) {
             glfw3 {
                 binaries.withType(StaticLibraryBinary) {
-                    staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/glfw3.lib")
+                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                        staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/glfw3.lib")
+                    }
+                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                        staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libglfw3.a")
+                    }
                 }
             }
             libffi {
                 binaries.withType(StaticLibraryBinary) {
-                    staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/libffi.lib")
+                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                        staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/libffi.lib")
+                    }
+                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                        staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libffi.a")
+                    }
                 }
             }
         }
@@ -238,6 +270,12 @@ afterEvaluate {
         tasks.withType(LinkSharedLibrary) {
             dependsOn 'updateWindowsX86'
             dependsOn 'updateWindowsX64'
+        }
+    }
+    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+        tasks.withType(LinkSharedLibrary) {
+            dependsOn 'updateLinuxX86'
+            dependsOn 'updateLinuxX64'
         }
     }
 }
