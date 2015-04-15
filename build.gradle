@@ -74,6 +74,9 @@ dependencies {
 sourceSets.main.compileClasspath += sourceSets.templates.output
 
 task generate(type: JavaExec) {
+    doFirst {
+        file('generated').mkdirs()
+    }
     dependsOn 'compileTemplatesJava'
     dependsOn 'compileTemplatesKotlin'
     classpath configurations.templatesCompile
