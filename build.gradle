@@ -17,6 +17,14 @@ buildscript {
     }
 }
 
+//MAJOR.MINOR.REVISION
+//[0-9].[0-9].[0-9]+[ab]?
+version = '3.0.0a'
+
+ext {
+    buildType = hasProperty('LWJGL_BUILD_TYPE') ? getProperty('LWJGL_BUILD_TYPE') : 'stable'
+}
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
@@ -90,16 +98,26 @@ test {
 
     useTestNG {
         suites 'config/tests.xml'
-        if (Os.isFamily(Os.FAMILY_UNIX)) {
+        if ( Os.isFamily(Os.FAMILY_UNIX) ) {
             suites 'config/tests_linux.xml'
         }
-        if (Os.isFamily(Os.FAMILY_MAC)) {
+        if ( Os.isFamily(Os.FAMILY_MAC) ) {
             suites 'config/tests_macosx.xml'
         }
-        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
             suites 'config/tests_windows.xml'
         }
     }
+}
+
+javadoc {
+    title "LWJGL $version"
+    options {
+        encoding 'utf8'
+        doclet "org.lwjgl.system.ExcludeDoclet"
+        docletpath file("$buildDir/classes/templates"), file("$buildDir/kotlin-classes/templates")
+    }
+    source 'src/core', 'src/util', 'generated/java'
 }
 
 /*
@@ -108,26 +126,89 @@ test {
 
 apply plugin: 'c'
 
+def updateDependency(String platform, String artifact) {
+    file("$buildDir/libs/$platform").mkdirs()
+    OutputStream dest = file("$buildDir/libs/$platform/$artifact").newOutputStream()
+    dest << new URL("http://s3.amazonaws.com/build.lwjgl.org/${ext.buildType}/$platform/$artifact").openStream()
+    dest.close()
+}
+
+task updateWindowsX64 {
+    outputs.file("$buildDir/libs/windows/x64/OpenAL32.dll")
+    outputs.file("$buildDir/libs/windows/x64/glfw3.lib")
+    outputs.file("$buildDir/libs/windows/x64/libffi.lib")
+    doLast {
+        updateDependency('windows/x64', 'OpenAL32.dll')
+        updateDependency('windows/x64', 'glfw3.lib')
+        updateDependency('windows/x64', 'libffi.lib')
+    }
+}
+
+task updateWindowsX86 {
+    outputs.file("$buildDir/libs/windows/x86/OpenAL32.dll")
+    outputs.file("$buildDir/libs/windows/x86/glfw3.lib")
+    outputs.file("$buildDir/libs/windows/x86/libffi.lib")
+    doLast {
+        updateDependency('windows/x86', 'OpenAL32.dll')
+        updateDependency('windows/x86', 'glfw3.lib')
+        updateDependency('windows/x86', 'libffi.lib')
+    }
+}
+
 model {
+    buildTypes {
+        debug
+        release
+    }
+    platforms {
+        x86 {
+            architecture "x86"
+        }
+        x64 {
+            architecture "x86_64"
+        }
+    }
+    repositories {
+        libs(PrebuiltLibraries) {
+            glfw3 {
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/glfw3.lib")
+                }
+            }
+            libffi {
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/libffi.lib")
+                }
+            }
+        }
+    }
     components {
         lwjgl(NativeLibrarySpec) {
-            binaries.all {
-                if ( toolChain in VisualCpp ) {
-                    sources {
-                        platformC(CSourceSet) {
-                            source.srcDir 'src/native/system'
-                            source.srcDir 'src/native/system/libffi'
-                            source.srcDir 'generated/native/system'
-                            source.srcDir 'generated/native/system/libffi'
-                            source.srcDir 'generated/native/system/windows'
-                            source.srcDir 'generated/native/glfw'
-                            source.srcDir 'generated/native/openal'
-                            source.srcDir 'generated/native/opencl'
-                            source.srcDir 'generated/native/opengl'
-                            source.srcDir 'generated/native/opengl/wgl'
-                            source.include '*.c'
-                        }
+            if ( Os.isFamily(Os.FAMILY_WINDOWS) || Os.isFamily(Os.FAMILY_UNIX) ) {
+                targetPlatform "x86"
+            }
+            targetPlatform "x64"
+            sources.c {
+                source {
+                    srcDir 'src/native/system'
+                    srcDir 'src/native/system/libffi'
+                    srcDir 'generated/native/system'
+                    srcDir 'generated/native/system/libffi'
+                    srcDir 'generated/native/openal'
+                    srcDir 'generated/native/opencl'
+                    srcDir 'generated/native/opengl'
+                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                        srcDir 'generated/native/system/windows'
+                        srcDir 'generated/native/glfw'
+                        srcDir 'generated/native/opengl/wgl'
                     }
+                    include '*.c'
+                }
+            }
+            binaries.all {
+                lib library: 'glfw3', linkage: 'static'
+                lib library: 'libffi', linkage: 'static'
+                if ( toolChain in VisualCpp ) {
                     cCompiler.define "LWJGL_WINDOWS"
                     cCompiler.args "/Wall", "/WX", "/wd4996", "/EHsc", "/Ox", "/Gy", "/MT", "/MP", "/nologo"
                     cCompiler.args "/I${file('src/native/system')}"
@@ -141,9 +222,19 @@ model {
                     cCompiler.args "/I${System.properties['java.home']}/../include"
                     cCompiler.args "/I${System.properties['java.home']}/../include/win32"
                     linker.args '/LD', '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
-                    linker.args "Kernel32.lib", "user32.lib", "Gdi32.lib", "winmm.lib", "shell32.lib", "OpenGL32.Lib"
+                    linker.args 'Kernel32.lib', 'user32.lib', 'Gdi32.lib', 'winmm.lib', 'shell32.lib', 'OpenGL32.Lib'
                 }
             }
         }
     }
 }
+
+afterEvaluate {
+    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+        tasks.withType(LinkSharedLibrary) {
+            dependsOn 'updateWindowsX86'
+            dependsOn 'updateWindowsX64'
+        }
+    }
+}
+
