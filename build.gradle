@@ -331,10 +331,10 @@ model {
                         // linker args: -mmacosx-version-min=${macosx-version-min}
 
                         linker.args "-Wl,-no_compact_unwind"
-                        linker.args '-framework AppKit'
-                        linker.args '-framework CoreVideo'
-                        linker.args '-framework IOKit'
-                        linker.args '-framework OpenGL'
+                        linker.args '-framework', 'AppKit'
+                        linker.args '-framework', 'CoreVideo'
+                        linker.args '-framework', 'IOKit'
+                        linker.args '-framework', 'OpenGL'
                     }
                     cCompiler.args "-O3", "-fPIC"
                     cCompiler.args "-Werror", "-Wfatal-errors", "-Wall", "-Wextra", "-pedantic", "-Wno-extended-offsetof"
