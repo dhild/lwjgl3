@@ -182,6 +182,17 @@ task updateLinuxX86 {
     }
 }
 
+task updateMacosxX64 {
+    outputs.file("$buildDir/libs/macosx/x64/libopenal.dylib")
+    outputs.file("$buildDir/libs/macosx/x64/libglfw3.a")
+    outputs.file("$buildDir/libs/macosx/x64/libffi.a")
+    doLast {
+        updateDependency('macosx/x64', 'libopenal.dylib')
+        updateDependency('macosx/x64', 'libglfw3.a')
+        updateDependency('macosx/x64', 'libffi.a')
+    }
+}
+
 model {
     buildTypes {
         debug
@@ -205,6 +216,9 @@ model {
                     if ( Os.isFamily(Os.FAMILY_UNIX) ) {
                         staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libglfw3.a")
                     }
+                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                        staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libglfw3.a")
+                    }
                 }
             }
             libffi {
@@ -214,6 +228,9 @@ model {
                     }
                     if ( Os.isFamily(Os.FAMILY_UNIX) ) {
                         staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libffi.a")
+                    }
+                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                        staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libffi.a")
                     }
                 }
             }
@@ -243,6 +260,11 @@ model {
                         srcDir 'generated/native/system/linux'
                         srcDir 'generated/native/opengl/glx'
                     }
+                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                        srcDir 'generated/native/system/macosx'
+                        include '*.m'
+                        exclude '*CL20.c'
+                    }
                     include '*.c'
                 }
             }
@@ -269,11 +291,30 @@ model {
                     if ( Os.isFamily(Os.FAMILY_UNIX) ) {
                         cCompiler.define "DLWJGL_LINUX"
                         cCompiler.define "_XOPEN_SOURCE=700"
+                        cCompiler.args "-std=c11", "-pthread"
                         cCompiler.args "-I${file('src/native/system/linux')}"
+                        cCompiler.args "-I${file('src/native/opengl/glx')}"
+                        cCompiler.args "-I${System.properties['java.home']}/../include"
+                        cCompiler.args "-I${System.properties['java.home']}/../include/linux"
 
                         linker.args "-lm", "-lpthread", "-lX11", "-lGL", "-lXi", "-lXrandr", "-lXxf86vm", "-lXinerama", "-lXcursor"
+                        linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
                     }
-                    cCompiler.args "-std=c11", "-O3", "-fPIC", "-pthread"
+                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                        cCompiler.define "DLWJGL_MACOSX"
+                        cCompiler.args "-std=c99", "-I${file('src/native/system/macosx')}"
+
+                        // TODO: Figure out how to handle:
+                        // compiler args: -isysroot ${sdkroot} -mmacosx-version-min=${macosx-version-min}
+                        // linker args: -mmacosx-version-min=${macosx-version-min}
+
+                        linker.args "-Wl,-no_compact_unwind"
+                        linker.args '-framework AppKit'
+                        linker.args '-framework CoreVideo'
+                        linker.args '-framework IOKit'
+                        linker.args '-framework OpenGL'
+                    }
+                    cCompiler.args "-O3", "-fPIC"
                     cCompiler.args "-Werror", "-Wfatal-errors", "-Wall", "-Wextra", "-pedantic", "-Wno-extended-offsetof"
                     cCompiler.args "-I${file('src/native/system')}"
                     cCompiler.args "-I${file('src/native/system/libffi')}"
@@ -281,11 +322,6 @@ model {
                     cCompiler.args "-I${file('src/native/openal')}"
                     cCompiler.args "-I${file('src/native/opencl')}"
                     cCompiler.args "-I${file('src/native/opengl')}"
-                    cCompiler.args "-I${file('src/native/opengl/glx')}"
-                    cCompiler.args "-I${System.properties['java.home']}/../include"
-                    cCompiler.args "-I${System.properties['java.home']}/../include/linux"
-
-                    linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
                 }
             }
         }
@@ -303,6 +339,11 @@ afterEvaluate {
         tasks.withType(LinkSharedLibrary) {
             dependsOn 'updateLinuxX86'
             dependsOn 'updateLinuxX64'
+        }
+    }
+    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+        tasks.withType(LinkSharedLibrary) {
+            dependsOn 'updateMacosxX64'
         }
     }
 }
