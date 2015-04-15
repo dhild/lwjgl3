@@ -87,6 +87,13 @@ task generate(type: JavaExec) {
 
 compileJava.dependsOn 'generate'
 
+tasks.withType(JavaCompile) {
+    options {
+        // Supresses internal API (e.g. Unsafe) usage warnings
+        compilerArgs "-XDignore.symbol.file=true"
+    }
+}
+
 test {
     jvmArgs '-Xcheck:jni'
     enableAssertions = true
