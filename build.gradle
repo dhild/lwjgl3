@@ -96,6 +96,16 @@ test {
                        files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
                              "$buildDir/libs/windows/x64").asPath
     }
+    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+        systemProperty 'java.library.path',
+                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                             "$buildDir/libs/linux/x64").asPath
+    }
+    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+        systemProperty 'java.library.path',
+                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                             "$buildDir/libs/macosx/x64").asPath
+    }
 
     if ( Os.isFamily(Os.FAMILY_MAC) ) {
         jvmArgs '-XstartOnFirstThread'
