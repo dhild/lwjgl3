@@ -323,6 +323,8 @@ model {
                     }
                     if ( isMac ) {
                         cCompiler.define "LWJGL_MACOSX"
+                        cCompiler.args "-I${System.properties['java.home']}/../include"
+                        cCompiler.args "-I${System.properties['java.home']}/../include/darwin"
                         cCompiler.args "-std=c99", "-I${file('src/native/system/macosx')}"
                         cCompiler.args '-Wno-deprecated'
 
