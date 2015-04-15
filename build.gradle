@@ -310,7 +310,7 @@ model {
                 }
                 if ( toolChain in Gcc || toolChain in Clang ) {
                     if ( isLinux ) {
-                        cCompiler.define "DLWJGL_LINUX"
+                        cCompiler.define "LWJGL_LINUX"
                         cCompiler.define "_XOPEN_SOURCE=700"
                         cCompiler.args "-std=c11", "-pthread"
                         cCompiler.args "-I${file('src/native/system/linux')}"
