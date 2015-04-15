@@ -324,6 +324,7 @@ model {
                     if ( isMac ) {
                         cCompiler.define "LWJGL_MACOSX"
                         cCompiler.args "-std=c99", "-I${file('src/native/system/macosx')}"
+                        cCompiler.args '-Wno-deprecated'
 
                         // TODO: Figure out how to handle:
                         // compiler args: -isysroot ${sdkroot} -mmacosx-version-min=${macosx-version-min}
