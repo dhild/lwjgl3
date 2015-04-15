@@ -90,7 +90,11 @@ test {
     jvmArgs '-Xcheck:jni'
     enableAssertions = true
     systemProperty 'org.lwjgl.util.Debug', 'true'
-    //systemProperty 'java.library.path', "" ---> bin, libs
+    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+        systemProperty 'java.library.path',
+                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                             "$buildDir/libs/windows/x64").asPath
+    }
 
     if ( Os.isFamily(Os.FAMILY_MAC) ) {
         jvmArgs '-XstartOnFirstThread'
