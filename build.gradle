@@ -2,6 +2,7 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
+
 import org.apache.tools.ant.taskdefs.condition.Os
 
 task wrapper(type: Wrapper) {
@@ -230,13 +231,17 @@ model {
                     srcDir 'src/native/system/libffi'
                     srcDir 'generated/native/system'
                     srcDir 'generated/native/system/libffi'
+                    srcDir 'generated/native/glfw'
                     srcDir 'generated/native/openal'
                     srcDir 'generated/native/opencl'
                     srcDir 'generated/native/opengl'
                     if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
                         srcDir 'generated/native/system/windows'
-                        srcDir 'generated/native/glfw'
                         srcDir 'generated/native/opengl/wgl'
+                    }
+                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                        srcDir 'generated/native/system/linux'
+                        srcDir 'generated/native/opengl/glx'
                     }
                     include '*.c'
                 }
@@ -259,6 +264,28 @@ model {
                     cCompiler.args "/I${System.properties['java.home']}/../include/win32"
                     linker.args '/LD', '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
                     linker.args 'Kernel32.lib', 'user32.lib', 'Gdi32.lib', 'winmm.lib', 'shell32.lib', 'OpenGL32.Lib'
+                }
+                if ( toolChain in Gcc || toolChain in Clang ) {
+                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                        cCompiler.define "DLWJGL_LINUX"
+                        cCompiler.define "_XOPEN_SOURCE=700"
+                        cCompiler.args "-I${file('src/native/system/linux')}"
+
+                        linker.args "-lm", "-lpthread", "-lX11", "-lGL", "-lXi", "-lXrandr", "-lXxf86vm", "-lXinerama", "-lXcursor"
+                    }
+                    cCompiler.args "-std=c11", "-O3", "-fPIC", "-pthread"
+                    cCompiler.args "-Werror", "-Wfatal-errors", "-Wall", "-Wextra", "-pedantic", "-Wno-extended-offsetof"
+                    cCompiler.args "-I${file('src/native/system')}"
+                    cCompiler.args "-I${file('src/native/system/libffi')}"
+                    cCompiler.args "-I${file('src/native/glfw')}"
+                    cCompiler.args "-I${file('src/native/openal')}"
+                    cCompiler.args "-I${file('src/native/opencl')}"
+                    cCompiler.args "-I${file('src/native/opengl')}"
+                    cCompiler.args "-I${file('src/native/opengl/glx')}"
+                    cCompiler.args "-I${System.properties['java.home']}/../include"
+                    cCompiler.args "-I${System.properties['java.home']}/../include/linux"
+
+                    linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
                 }
             }
         }
