@@ -319,7 +319,7 @@ model {
                         linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
                     }
                     if ( Os.isFamily(Os.FAMILY_MAC) ) {
-                        cCompiler.define "DLWJGL_MACOSX"
+                        cCompiler.define "LWJGL_MACOSX"
                         cCompiler.args "-std=c99", "-I${file('src/native/system/macosx')}"
 
                         // TODO: Figure out how to handle:
