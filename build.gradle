@@ -24,6 +24,9 @@ version = '3.0.0a'
 
 ext {
     buildType = hasProperty('LWJGL_BUILD_TYPE') ? getProperty('LWJGL_BUILD_TYPE') : 'stable'
+    isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+    isLinux = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)
+    isMac = Os.isFamily(Os.FAMILY_MAC)
 }
 
 apply plugin: 'java'
@@ -99,35 +102,35 @@ test {
     jvmArgs '-Xcheck:jni'
     enableAssertions = true
     systemProperty 'org.lwjgl.util.Debug', 'true'
-    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+    if ( isWindows ) {
         systemProperty 'java.library.path',
                        files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
                              "$buildDir/libs/windows/x64").asPath
     }
-    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+    if ( isLinux ) {
         systemProperty 'java.library.path',
                        files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
                              "$buildDir/libs/linux/x64").asPath
     }
-    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+    if ( isMac ) {
         systemProperty 'java.library.path',
                        files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
                              "$buildDir/libs/macosx/x64").asPath
     }
 
-    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+    if ( isMac ) {
         jvmArgs '-XstartOnFirstThread'
     }
 
     useTestNG {
         suites 'config/tests.xml'
-        if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+        if ( isLinux ) {
             suites 'config/tests_linux.xml'
         }
-        if ( Os.isFamily(Os.FAMILY_MAC) ) {
+        if ( isMac ) {
             suites 'config/tests_macosx.xml'
         }
-        if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+        if ( isWindows ) {
             suites 'config/tests_windows.xml'
         }
     }
@@ -228,26 +231,26 @@ model {
         libs(PrebuiltLibraries) {
             glfw3 {
                 binaries.withType(StaticLibraryBinary) {
-                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                    if ( isWindows ) {
                         staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/glfw3.lib")
                     }
-                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                    if ( isLinux ) {
                         staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libglfw3.a")
                     }
-                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                    if ( isMac ) {
                         staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libglfw3.a")
                     }
                 }
             }
             libffi {
                 binaries.withType(StaticLibraryBinary) {
-                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                    if ( isWindows ) {
                         staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/libffi.lib")
                     }
-                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                    if ( isLinux ) {
                         staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libffi.a")
                     }
-                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                    if ( isMac ) {
                         staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libffi.a")
                     }
                 }
@@ -256,7 +259,7 @@ model {
     }
     components {
         lwjgl(NativeLibrarySpec) {
-            if ( Os.isFamily(Os.FAMILY_WINDOWS) || Os.isFamily(Os.FAMILY_UNIX) ) {
+            if ( isWindows || isLinux ) {
                 targetPlatform "x86"
             }
             targetPlatform "x64"
@@ -270,15 +273,15 @@ model {
                     srcDir 'generated/native/openal'
                     srcDir 'generated/native/opencl'
                     srcDir 'generated/native/opengl'
-                    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+                    if ( isWindows ) {
                         srcDir 'generated/native/system/windows'
                         srcDir 'generated/native/opengl/wgl'
                     }
-                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                    if ( isLinux ) {
                         srcDir 'generated/native/system/linux'
                         srcDir 'generated/native/opengl/glx'
                     }
-                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                    if ( isMac ) {
                         srcDir 'generated/native/system/macosx'
                         include '*.m'
                         exclude '*CL20.c'
@@ -306,7 +309,7 @@ model {
                     linker.args 'Kernel32.lib', 'user32.lib', 'Gdi32.lib', 'winmm.lib', 'shell32.lib', 'OpenGL32.Lib'
                 }
                 if ( toolChain in Gcc || toolChain in Clang ) {
-                    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+                    if ( isLinux ) {
                         cCompiler.define "DLWJGL_LINUX"
                         cCompiler.define "_XOPEN_SOURCE=700"
                         cCompiler.args "-std=c11", "-pthread"
@@ -318,7 +321,7 @@ model {
                         linker.args "-lm", "-lpthread", "-lX11", "-lGL", "-lXi", "-lXrandr", "-lXxf86vm", "-lXinerama", "-lXcursor"
                         linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
                     }
-                    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+                    if ( isMac ) {
                         cCompiler.define "LWJGL_MACOSX"
                         cCompiler.args "-std=c99", "-I${file('src/native/system/macosx')}"
 
@@ -347,19 +350,19 @@ model {
 }
 
 afterEvaluate {
-    if ( Os.isFamily(Os.FAMILY_WINDOWS) ) {
+    if ( isWindows ) {
         tasks.withType(LinkSharedLibrary) {
             dependsOn 'updateWindowsX86'
             dependsOn 'updateWindowsX64'
         }
     }
-    if ( Os.isFamily(Os.FAMILY_UNIX) ) {
+    if ( isLinux ) {
         tasks.withType(LinkSharedLibrary) {
             dependsOn 'updateLinuxX86'
             dependsOn 'updateLinuxX64'
         }
     }
-    if ( Os.isFamily(Os.FAMILY_MAC) ) {
+    if ( isMac ) {
         tasks.withType(LinkSharedLibrary) {
             dependsOn 'updateMacosxX64'
         }
