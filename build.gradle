@@ -104,17 +104,17 @@ test {
     systemProperty 'org.lwjgl.util.Debug', 'true'
     if ( isWindows ) {
         systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
                              "$buildDir/libs/windows/x64").asPath
     }
     if ( isLinux ) {
         systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
                              "$buildDir/libs/linux/x64").asPath
     }
     if ( isMac ) {
         systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/x64Debug",
+                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
                              "$buildDir/libs/macosx/x64").asPath
     }
 
