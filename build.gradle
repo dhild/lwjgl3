@@ -27,6 +27,10 @@ ext {
     isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
     isLinux = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)
     isMac = Os.isFamily(Os.FAMILY_MAC)
+
+    // x86 is not in the original build script for Mac
+    jvmArch = (isMac || System.getProperty("os.arch") == 'amd64') ? 'x64' : 'x86'
+    osName = isWindows ? 'windows' : (isLinux ? 'linux' : (isMac ? 'macosx' : 'UNKNOWN'))
 }
 
 apply plugin: 'java'
@@ -101,38 +105,24 @@ compileJava {
 test {
     useTestNG { // According to the docs, this option should come first.
         suites 'config/tests.xml'
-        if ( isLinux ) {
-            suites 'config/tests_linux.xml'
-        }
-        if ( isMac ) {
-            suites 'config/tests_macosx.xml'
-        }
-        if ( isWindows ) {
-            suites 'config/tests_windows.xml'
-        }
+        suites "config/tests_${osName}.xml"
     }
 
     jvmArgs '-Xcheck:jni'
     enableAssertions = true
     systemProperty 'org.lwjgl.util.Debug', 'true'
-    if ( isWindows ) {
-        systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
-                             "$buildDir/libs/windows/x64").asPath
-    }
-    if ( isLinux ) {
-        systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
-                             "$buildDir/libs/linux/x64").asPath
-    }
     if ( isMac ) {
+        jvmArgs '-XstartOnFirstThread'
+        // Only one arch for Mac right now, which changes the library output directory.
+        dependsOn 'debugLwjglSharedLibrary'
         systemProperty 'java.library.path',
                        files("$buildDir/binaries/lwjglSharedLibrary/debug",
                              "$buildDir/libs/macosx/x64").asPath
-    }
-
-    if ( isMac ) {
-        jvmArgs '-XstartOnFirstThread'
+    } else {
+        dependsOn "${jvmArch}DebugLwjglSharedLibrary"
+        systemProperty 'java.library.path',
+                       files("$buildDir/binaries/lwjglSharedLibrary/${jvmArch}Debug",
+                             "$buildDir/libs/$osName/$jvmArch").asPath
     }
 }
 
@@ -152,65 +142,38 @@ javadoc {
 
 apply plugin: 'c'
 
-def updateDependency(String platform, String artifact) {
+ext {
+    libOpenALName = isWindows ? 'OpenAL32.dll' : (isLinux ? 'libopenal.so' : (isMac ? 'libopenal.dylib' : 'UNKNOWN_OpenAL'))
+    libglfw3Name = isWindows ? 'glfw3.lib' : (isLinux ? 'libglfw3.a' : (isMac ? 'libglfw3.a' : 'UNKNOWN_glfw3'))
+    libffiName = isWindows ? 'libffi.lib' : (isLinux ? 'libffi.a' : (isMac ? 'libffi.a' : 'UNKNOWN_libffi'))
+}
+
+def updateDependency(String platform, def artifact) {
     file("$buildDir/libs/$platform").mkdirs()
     OutputStream dest = file("$buildDir/libs/$platform/$artifact").newOutputStream()
     dest << new URL("http://s3.amazonaws.com/build.lwjgl.org/${ext.buildType}/$platform/$artifact").openStream()
     dest.close()
 }
 
-task updateWindowsX64 {
-    outputs.file("$buildDir/libs/windows/x64/OpenAL32.dll")
-    outputs.file("$buildDir/libs/windows/x64/glfw3.lib")
-    outputs.file("$buildDir/libs/windows/x64/libffi.lib")
+task updateExternalLibsX64 {
+    outputs.file("$buildDir/libs/$osName/x64/$libOpenALName")
+    outputs.file("$buildDir/libs/$osName/x64/$libglfw3Name")
+    outputs.file("$buildDir/libs/$osName/x64/$libffiName")
     doLast {
-        updateDependency('windows/x64', 'OpenAL32.dll')
-        updateDependency('windows/x64', 'glfw3.lib')
-        updateDependency('windows/x64', 'libffi.lib')
+        updateDependency("$osName/x64", libOpenALName)
+        updateDependency("$osName/x64", libglfw3Name)
+        updateDependency("$osName/x64", libffiName)
     }
 }
 
-task updateWindowsX86 {
-    outputs.file("$buildDir/libs/windows/x86/OpenAL32.dll")
-    outputs.file("$buildDir/libs/windows/x86/glfw3.lib")
-    outputs.file("$buildDir/libs/windows/x86/libffi.lib")
+task updateExternalLibsX86 {
+    outputs.file("$buildDir/libs/$osName/x86/$libOpenALName")
+    outputs.file("$buildDir/libs/$osName/x86/$libglfw3Name")
+    outputs.file("$buildDir/libs/$osName/x86/$libffiName")
     doLast {
-        updateDependency('windows/x86', 'OpenAL32.dll')
-        updateDependency('windows/x86', 'glfw3.lib')
-        updateDependency('windows/x86', 'libffi.lib')
-    }
-}
-
-task updateLinuxX64 {
-    outputs.file("$buildDir/libs/linux/x64/libopenal.so")
-    outputs.file("$buildDir/libs/linux/x64/libglfw3.a")
-    outputs.file("$buildDir/libs/linux/x64/libffi.a")
-    doLast {
-        updateDependency('linux/x64', 'libopenal.so')
-        updateDependency('linux/x64', 'libglfw3.a')
-        updateDependency('linux/x64', 'libffi.a')
-    }
-}
-
-task updateLinuxX86 {
-    outputs.file("$buildDir/libs/linux/x86/libopenal.so")
-    outputs.file("$buildDir/libs/linux/x86/libglfw3.a")
-    outputs.file("$buildDir/libs/linux/x86/libffi.a")
-    doLast {
-        updateDependency('linux/x86', 'libopenal.so')
-        updateDependency('linux/x86', 'libglfw3.a')
-        updateDependency('linux/x86', 'libffi.a')
-    }
-}
-
-task updateMacosxX64 {
-    outputs.file("$buildDir/libs/macosx/x64/libopenal.dylib")
-    outputs.file("$buildDir/libs/macosx/x64/libglfw3.a")
-    outputs.file("$buildDir/libs/macosx/x64/libffi.a")
-    doLast {
-        updateDependency('macosx/x64', 'libopenal.dylib')
-        updateDependency('macosx/x64', 'libglfw3.a')
-        updateDependency('macosx/x64', 'libffi.a')
+        updateDependency("$osName/x86", libOpenALName)
+        updateDependency("$osName/x86", libglfw3Name)
+        updateDependency("$osName/x86", libffiName)
     }
 }
 
@@ -220,8 +183,10 @@ model {
         release
     }
     platforms {
-        x86 {
-            architecture "x86"
+        if ( isWindows || isLinux ) {
+            x86 {
+                architecture "x86"
+            }
         }
         x64 {
             architecture "x86_64"
@@ -231,28 +196,12 @@ model {
         libs(PrebuiltLibraries) {
             glfw3 {
                 binaries.withType(StaticLibraryBinary) {
-                    if ( isWindows ) {
-                        staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/glfw3.lib")
-                    }
-                    if ( isLinux ) {
-                        staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libglfw3.a")
-                    }
-                    if ( isMac ) {
-                        staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libglfw3.a")
-                    }
+                    staticLibraryFile = file("$buildDir/libs/$osName/${targetPlatform.name}/$libglfw3Name")
                 }
             }
             libffi {
                 binaries.withType(StaticLibraryBinary) {
-                    if ( isWindows ) {
-                        staticLibraryFile = file("$buildDir/libs/windows/${targetPlatform.name}/libffi.lib")
-                    }
-                    if ( isLinux ) {
-                        staticLibraryFile = file("$buildDir/libs/linux/${targetPlatform.name}/libffi.a")
-                    }
-                    if ( isMac ) {
-                        staticLibraryFile = file("$buildDir/libs/macosx/${targetPlatform.name}/libffi.a")
-                    }
+                    staticLibraryFile = file("$buildDir/libs/$osName/${targetPlatform.name}/$libffiName")
                 }
             }
         }
@@ -273,16 +222,14 @@ model {
                     srcDir 'generated/native/openal'
                     srcDir 'generated/native/opencl'
                     srcDir 'generated/native/opengl'
+                    srcDir "generated/native/system/$osName"
                     if ( isWindows ) {
-                        srcDir 'generated/native/system/windows'
                         srcDir 'generated/native/opengl/wgl'
                     }
                     if ( isLinux ) {
-                        srcDir 'generated/native/system/linux'
                         srcDir 'generated/native/opengl/glx'
                     }
                     if ( isMac ) {
-                        srcDir 'generated/native/system/macosx'
                         include '*.m'
                         exclude '*CL20.c'
                     }
@@ -353,21 +300,10 @@ model {
 }
 
 afterEvaluate {
-    if ( isWindows ) {
-        tasks.withType(LinkSharedLibrary) {
-            dependsOn 'updateWindowsX86'
-            dependsOn 'updateWindowsX64'
-        }
-    }
-    if ( isLinux ) {
-        tasks.withType(LinkSharedLibrary) {
-            dependsOn 'updateLinuxX86'
-            dependsOn 'updateLinuxX64'
-        }
-    }
-    if ( isMac ) {
-        tasks.withType(LinkSharedLibrary) {
-            dependsOn 'updateMacosxX64'
+    tasks.withType(LinkSharedLibrary) {
+        dependsOn 'updateExternalLibsX64'
+        if ( isWindows || isLinux ) {
+            dependsOn 'updateExternalLibsX86'
         }
     }
 }
