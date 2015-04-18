@@ -70,12 +70,12 @@ repositories {
 }
 
 dependencies {
-    templatesCompile 'org.jetbrains.kotlin:kotlin-stdlib:0.11.91'
-    kotlinRuntime 'org.jetbrains.kotlin:kotlin-runtime:0.11.91'
+    templatesCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    kotlinRuntime "org.jetbrains.kotlin:kotlin-runtime:$kotlinVersion"
     templatesCompile files("${System.properties['java.home']}/../lib/tools.jar")
     compile files("${System.properties['java.home']}/../lib/tools.jar")
 
-    testCompile 'org.testng:testng:6.8.13'
+    testCompile "org.testng:testng:$testngVersion"
 }
 
 sourceSets.main.compileClasspath += sourceSets.templates.output
