@@ -142,6 +142,77 @@ javadoc {
 }
 
 /*
+ * Releasable artifact configuration:
+ */
+
+def downloadFile(String url, String output) {
+    file(output).parentFile.mkdirs()
+    OutputStream dest = file(output).newOutputStream()
+    dest << new URL(url).openStream()
+    dest.close()
+}
+
+ext {
+    releaseDir = "$buildDir/release"
+    releaseJarDir = "$buildDir/release/jar"
+    releaseNativeDir = "$buildDir/release/native"
+    releaseDocDir = "$buildDir/release/doc"
+}
+
+task downloadReleaseBinaries << {
+    downloadFile("http://build.lwjgl.org/$buildType/windows/x64/lwjgl.dll", "$releaseNativeDir/windows/x64/lwjgl.dll")
+    downloadFile("http://build.lwjgl.org/$buildType/windows/x86/lwjgl.dll", "$releaseNativeDir/windows/x86/lwjgl.dll")
+    downloadFile("http://build.lwjgl.org/$buildType/windows/x64/OpenAL32.dll", "$releaseNativeDir/windows/x64/OpenAL32.dll")
+    downloadFile("http://build.lwjgl.org/$buildType/windows/x64/OpenAL32.dll", "$releaseNativeDir/windows/x64/OpenAL32.dll")
+
+    downloadFile("http://build.lwjgl.org/$buildType/linux/x64/liblwjgl.so", "$releaseNativeDir/linux/x64/liblwjgl.so")
+    downloadFile("http://build.lwjgl.org/$buildType/linux/x86/liblwjgl.so", "$releaseNativeDir/linux/x86/liblwjgl.so")
+    downloadFile("http://build.lwjgl.org/$buildType/linux/x64/libopenal.so", "$releaseNativeDir/linux/x64/libopenal.so")
+    downloadFile("http://build.lwjgl.org/$buildType/linux/x64/libopenal.so", "$releaseNativeDir/linux/x64/libopenal.so")
+
+    downloadFile("http://build.lwjgl.org/$buildType/macosx/x64/liblwjgl.dylib", "$releaseNativeDir/macosx/x64/liblwjgl.dylib")
+    downloadFile("http://build.lwjgl.org/$buildType/macosx/x64/libopenal.dylib", "$releaseNativeDir/macosx/x64/libopenal.dylib")
+}
+
+task javadocZip(type: Zip) {
+    doFirst {
+        file(releaseDocDir).mkdirs()
+    }
+    from javadoc.outputs
+    destinationDir = file(releaseDocDir)
+    archiveName = 'javadoc.zip'
+}
+
+task sourcesZip(type: Zip) {
+    doFirst {
+        file(releaseDir).mkdirs()
+    }
+    from "src/core"
+    from "generated/java"
+    destinationDir = file(releaseDir)
+    archiveName = 'src.zip'
+}
+
+task release {
+    dependsOn 'jar'
+    dependsOn 'downloadReleaseBinaries'
+    dependsOn 'javadocZip'
+    dependsOn 'sourcesZip'
+    doLast {
+        copy {
+            from jar.outputs
+            into releaseJarDir
+        }
+        copy {
+            from "doc"
+            include "LICENSE.txt"
+            include "3rdparty/**"
+            into releaseDocDir
+        }
+    }
+}
+
+/*
  * Native Library Configuration:
  */
 
