@@ -130,8 +130,13 @@ javadoc {
     title "LWJGL $version"
     options {
         encoding 'utf8'
+        docEncoding 'utf8'
+        noHelp true
+        noTree true
         doclet "org.lwjgl.system.ExcludeDoclet"
         docletpath file("$buildDir/classes/templates"), file("$buildDir/kotlin-classes/templates")
+        docTitle '<h1>Lightweight Java Game Library</h1>'
+        bottom '<i>Copyright LWJGL. All Rights Reserved. <a href="http://lwjgl.org/license.php">License terms</a>.</i>'
     }
     source 'src/core', 'src/util', 'generated/java'
 }
