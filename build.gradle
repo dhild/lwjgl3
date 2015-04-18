@@ -252,7 +252,7 @@ model {
                     cCompiler.args "/I${file('src/native/opengl/wgl')}"
                     cCompiler.args "/I${System.properties['java.home']}/../include"
                     cCompiler.args "/I${System.properties['java.home']}/../include/win32"
-                    linker.args '/LD', '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
+                    linker.args '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
                     linker.args 'Kernel32.lib', 'user32.lib', 'Gdi32.lib', 'winmm.lib', 'shell32.lib', 'OpenGL32.Lib'
                 }
                 if ( toolChain in Gcc || toolChain in Clang ) {
