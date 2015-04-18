@@ -99,6 +99,19 @@ compileJava {
 }
 
 test {
+    useTestNG { // According to the docs, this option should come first.
+        suites 'config/tests.xml'
+        if ( isLinux ) {
+            suites 'config/tests_linux.xml'
+        }
+        if ( isMac ) {
+            suites 'config/tests_macosx.xml'
+        }
+        if ( isWindows ) {
+            suites 'config/tests_windows.xml'
+        }
+    }
+
     jvmArgs '-Xcheck:jni'
     enableAssertions = true
     systemProperty 'org.lwjgl.util.Debug', 'true'
@@ -120,19 +133,6 @@ test {
 
     if ( isMac ) {
         jvmArgs '-XstartOnFirstThread'
-    }
-
-    useTestNG {
-        suites 'config/tests.xml'
-        if ( isLinux ) {
-            suites 'config/tests_linux.xml'
-        }
-        if ( isMac ) {
-            suites 'config/tests_macosx.xml'
-        }
-        if ( isWindows ) {
-            suites 'config/tests_windows.xml'
-        }
     }
 }
 
