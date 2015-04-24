@@ -2,16 +2,16 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.system.linux.templates
+package org.lwjgl.glfw.templates
 
 import org.lwjgl.generator.*
 import org.lwjgl.opengl.*
 import org.lwjgl.glfw.*
 import org.lwjgl.system.linux.*
 
-val GLFWLinux = "GLFWLinux".nativeClass(packageName = LINUX_PACKAGE, prefix = "GLFW") {
-	nativeDefine("GLFW_EXPOSE_NATIVE_X11")
-	nativeDefine("GLFW_EXPOSE_NATIVE_GLX")
+val GLFWLinux = "GLFWLinux".nativeClass(packageName = GLFW_PACKAGE, nativeSubPath = "linux", prefix = "GLFW") {
+	nativeDirective("#define GLFW_EXPOSE_NATIVE_X11")
+	nativeDirective("#define GLFW_EXPOSE_NATIVE_GLX")
 
 	nativeImport(
 		"glfw3.h",

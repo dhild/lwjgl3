@@ -6,17 +6,17 @@ package org.lwjgl.demo.glfw;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GLContextWindows;
 import org.lwjgl.system.windows.PIXELFORMATDESCRIPTOR;
 import org.lwjgl.system.windows.WindowsDisplay;
-import org.lwjgl.system.windows.opengl.WindowsGLContext;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.WGL.*;
 import static org.lwjgl.opengl.WGLARBMultisample.*;
 import static org.lwjgl.opengl.WGLARBPixelFormat.*;
-import static org.lwjgl.system.windows.WGL.*;
 import static org.lwjgl.system.windows.WinGDI.*;
 import static org.testng.Assert.*;
 
@@ -76,7 +76,7 @@ public final class DemoUtil {
 		int success = SetPixelFormat(dummy.getHdc(), pixelFormat, pfd);
 		assertTrue(success != 0);
 
-		GLContext context = WindowsGLContext.create(dummy.getHdc());
+		GLContext context = GLContextWindows.create(dummy.getHdc());
 
 		IntBuffer propList = BufferUtils.createIntBuffer(32);
 
@@ -128,7 +128,7 @@ public final class DemoUtil {
 
 		SetPixelFormat(HDC, pixelFormat, pfdOut);
 
-		return WindowsGLContext.create(HDC);
+		return GLContextWindows.create(HDC);
 	}
 
 	public static void pause(long pause) {

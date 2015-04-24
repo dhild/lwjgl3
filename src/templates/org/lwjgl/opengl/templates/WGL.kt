@@ -2,12 +2,17 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.system.windows.templates
+package org.lwjgl.opengl.templates
 
 import org.lwjgl.generator.*
+import org.lwjgl.opengl.OPENGL_PACKAGE
 import org.lwjgl.system.windows.*
 
-val WGL = "WGL".nativeClass(packageName = WINDOWS_PACKAGE, prefix = "WGL") {
+val WGL = "WGL".nativeClass(OPENGL_PACKAGE, nativeSubPath = "wgl", prefix = "WGL") {
+	javaImport(
+		"org.lwjgl.system.windows.*"
+	)
+
 	nativeImport (
 		"WindowsLWJGL.h"
 	)
@@ -246,5 +251,4 @@ val WGL = "WGL".nativeClass(packageName = WINDOWS_PACKAGE, prefix = "WGL") {
 			"""
 		)
 	)
-
 }

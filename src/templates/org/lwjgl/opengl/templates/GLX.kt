@@ -2,15 +2,18 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.system.linux.templates
+package org.lwjgl.opengl.templates
 
 import org.lwjgl.generator.*
+import org.lwjgl.opengl.GLXContext
+import org.lwjgl.opengl.GLXDrawable
+import org.lwjgl.opengl.GLXPixmap
+import org.lwjgl.opengl.OPENGL_PACKAGE
 import org.lwjgl.system.linux.*
-import org.lwjgl.opengl.*
 
-val GLX = "GLX".nativeClass(LINUX_PACKAGE, prefix = "GLX", prefixMethod = "glX") {
+val GLX = "GLX".nativeClass(OPENGL_PACKAGE, nativeSubPath = "glx", prefix = "GLX", prefixMethod = "glX") {
 	javaImport(
-		"org.lwjgl.opengl.*"
+		"org.lwjgl.system.linux.*"
 	)
 
 	nativeImport (
@@ -240,5 +243,4 @@ val GLX = "GLX".nativeClass(LINUX_PACKAGE, prefix = "GLX", prefixMethod = "glX")
 		DISPLAY,
 		GLXPixmap.IN("pixmap", "the GLXPixmap to destroy.")
 	)
-
 }

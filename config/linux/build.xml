@@ -1,4 +1,8 @@
-<project name="lwjgl native code" basedir="../.." default="compile-native-linux">
+<!--
+Copyright LWJGL. All rights reserved.
+License terms: http://lwjgl.org/license.php
+-->
+<project name="native-linux" basedir="../.." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<import file="../build-definitions.xml"/>
 
 	<property name="system_libs" value="-lm -lpthread -lX11 -lGL -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor"/>
@@ -20,9 +24,17 @@
 	<property name="libname" value="liblwjgl.so"/>
 
 	<fileset id="link-objects" dir="${bin.native}" includes="*.o"/>
-	<fileset id="link-libraries" dir="${lib.abs}/linux/${build.arch}/" includes="*.a"/>
+	<fileset id="link-libraries" dir="${lib.abs}/linux/${build.arch}/">
+		<include name="libffi.a"/>
+		<include name="libglfw3.a" if:true="${build.glfw}"/>
+	</fileset>
 
-	<target name="compile-native-linux">
+	<condition property="build.ovr.arch" value="x86_64" else="x86" if:true="${build.ovr}">
+		<equals arg1="${build.arch}" arg2="x64"/>
+	</condition>
+	<fileset id="link-ovr" dir="${OCULUS_SDK_PATH}/LibOVR/Lib/Linux/${build.ovr.arch}/Release" includes="*.a" if:true="${build.ovr}"/>
+
+	<target name="compile-native-platform">
 		<!-- COMPILE -->
 		<property name="warnings" value="-Werror -Wfatal-errors -Wall -Wextra -pedantic -Wno-extended-offsetof"/>
 
@@ -35,11 +47,12 @@
 			<arg value="-I${src.native.abs}/system"/>
 			<arg value="-I${src.native.abs}/system/linux"/>
 			<arg value="-I${src.native.abs}/system/libffi"/>
-			<arg value="-I${src.native.abs}/glfw"/>
-			<arg value="-I${src.native.abs}/openal"/>
-			<arg value="-I${src.native.abs}/opencl"/>
-			<arg value="-I${src.native.abs}/opengl"/>
-			<arg value="-I${src.native.abs}/opengl/glx"/>
+			<arg value="-I${src.native.abs}/glfw" if:true="${build.glfw}"/>
+			<arg value="-I${src.native.abs}/openal" if:true="${build.openal}"/>
+			<arg value="-I${src.native.abs}/opencl" if:true="${build.opencl}"/>
+			<arg value="-I${src.native.abs}/opengl" if:true="${build.opengl}"/>
+			<arg value="-I${src.native.abs}/opengl/glx" if:true="${build.opengl}"/>
+			<arg value="-I${OCULUS_SDK_PATH}/LibOVR/Include" if:true="${build.ovr}"/>
 
 			<!-- Paths relative to basedir -->
 			<fileset dir="${src.native}/system" includes="*.c"/>
@@ -47,11 +60,14 @@
 			<fileset dir="${generated.native}/system" includes="*.c"/>
 			<fileset dir="${generated.native}/system/linux" includes="*.c"/>
 			<fileset dir="${generated.native}/system/libffi" includes="*.c"/>
-			<fileset dir="${generated.native}/glfw" includes="*.c"/>
-			<fileset dir="${generated.native}/openal" includes="*.c"/>
-			<fileset dir="${generated.native}/opencl" includes="*.c"/>
-			<fileset dir="${generated.native}/opengl" includes="*.c"/>
-			<fileset dir="${generated.native}/opengl/glx" includes="*.c"/>
+			<fileset dir="${generated.native}/glfw" includes="*.c" if:true="${build.glfw}"/>
+			<fileset dir="${generated.native}/glfw/linux" includes="*.c" if:true="${build.glfw}"/>
+			<fileset dir="${generated.native}/openal" includes="*.c" if:true="${build.openal}"/>
+			<fileset dir="${generated.native}/opencl" includes="*.c" if:true="${build.opencl}"/>
+			<fileset dir="${generated.native}/opengl" includes="*.c" if:true="${build.opengl}"/>
+			<fileset dir="${generated.native}/opengl/glx" includes="*.c" if:true="${build.opengl}"/>
+			<fileset dir="${generated.native}/ovr" includes="*.c" if:true="${build.ovr}"/>
+			<fileset dir="${generated.native}/ovr/linux" includes="*.c" if:true="${build.ovr}"/>
 
 			<globmapper from="*.c" to="*.o"/>
 		</apply>
@@ -60,6 +76,7 @@
 		<uptodate property="link-uptodate" targetfile="${bin.native}/${libname}">
 			<srcfiles refid="link-objects"/>
 			<srcfiles refid="link-libraries"/>
+			<srcfiles refid="link-ovr" if:true="${build.ovr}"/>
 		</uptodate>
 
 		<antcall target="-link-if-necessary"/>
@@ -73,8 +90,8 @@
 		<mkdir dir="${lib}/linux"/>
 		<mkdir dir="${lib}/linux/x86"/>
 
-		<update-dependency name="OpenAL32 (x86)" artifact="x86/libopenal.so"/>
-		<update-dependency name="glfw3 (x86)" artifact="x86/libglfw3.a"/>
+		<update-dependency name="OpenAL32 (x86)" artifact="x86/libopenal.so" if:true="${build.openal}"/>
+		<update-dependency name="glfw3 (x86)" artifact="x86/libglfw3.a" if:true="${build.glfw}"/>
 		<update-dependency name="libffi (x86)" artifact="x86/libffi.a"/>
 	</target>
 
@@ -82,8 +99,8 @@
 		<mkdir dir="${lib}/linux"/>
 		<mkdir dir="${lib}/linux/x64"/>
 
-		<update-dependency name="OpenAL32 (x64)" artifact="x64/libopenal.so"/>
-		<update-dependency name="glfw3 (x64)" artifact="x64/libglfw3.a"/>
+		<update-dependency name="OpenAL32 (x64)" artifact="x64/libopenal.so" if:true="${build.openal}"/>
+		<update-dependency name="glfw3 (x64)" artifact="x64/libglfw3.a" if:true="${build.glfw}"/>
 		<update-dependency name="libffi (x64)" artifact="x64/libffi.a"/>
 	</target>
 
@@ -92,13 +109,16 @@
 	</target>
 
 	<target name="-link" depends="-update-dependencies">
-		<dirname property="ant.file.dir" file="${ant.file}"/>
+		<local name="version.script"/>
+		<property name="version.script" location="config/linux/version.script"/>
+
 		<apply dir="${bin.native}" executable="gcc" failonerror="true" parallel="true" taskname="Linker">
 			<srcfile/>
-			<arg line="-shared ${compiler.arch} -fPIC -pthread -o ${libname} ${libs} -Xlinker --version-script -Xlinker ${ant.file.dir}/version.script"/>
+			<arg line="-shared ${compiler.arch} -fPIC -pthread -o ${libname} ${libs} -Xlinker --version-script -Xlinker ${version.script}"/>
 
 			<fileset refid="link-objects"/>
 			<fileset refid="link-libraries"/>
+			<fileset refid="link-ovr" if:true="${build.ovr}"/>
 		</apply>
 
 		<apply dir="${bin.native}" executable="strip" failonerror="true" taskname="Symbol strip">

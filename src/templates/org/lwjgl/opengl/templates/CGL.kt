@@ -2,15 +2,13 @@
  * Copyright LWJGL. All rights reserved.
  * License terms: http://lwjgl.org/license.php
  */
-package org.lwjgl.system.macosx.templates
+package org.lwjgl.opengl.templates
 
 import org.lwjgl.generator.*
-import org.lwjgl.system.macosx.*
 import org.lwjgl.opengl.*
+import org.lwjgl.system.macosx.*
 
-val CGL = "CGL".nativeClass(MACOSX_PACKAGE, prefix = "CGL", prefixMethod = "CGL", prefixConstant = "kCGL") {
-	javaImport("org.lwjgl.opengl.GL11")
-
+val CGL = "CGL".nativeClass(OPENGL_PACKAGE, nativeSubPath = "cgl", prefix = "CGL", prefixMethod = "CGL", prefixConstant = "kCGL") {
 	nativeImport (
 		"MacOSXLWJGL.h",
 		"<OpenGL/OpenGL.h>"
@@ -855,5 +853,4 @@ val CGL = "CGL".nativeClass(MACOSX_PACKAGE, prefix = "CGL", prefixMethod = "CGL"
 
 		CGLError.IN("error", "the CGL result code constant returned from a CGL function", Errors)
 	)
-
 }
