@@ -5,10 +5,18 @@
       <GradleProjectSettings>
         <option name="distributionType" value="WRAPPED" />
         <option name="externalProjectPath" value="$PROJECT_DIR$/../../.." />
-        <option name="gradleJvm" value="#JAVA_HOME" />
+        <option name="gradleJvm" value="1.8" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$/../../.." />
+            <option value="$PROJECT_DIR$/../../../core" />
+            <option value="$PROJECT_DIR$/../../../generator" />
+            <option value="$PROJECT_DIR$/../../../glfw" />
+            <option value="$PROJECT_DIR$/../../../mantle" />
+            <option value="$PROJECT_DIR$/../../../openal" />
+            <option value="$PROJECT_DIR$/../../../opencl" />
+            <option value="$PROJECT_DIR$/../../../opengl" />
+            <option value="$PROJECT_DIR$/../../../ovr" />
           </set>
         </option>
       </GradleProjectSettings>

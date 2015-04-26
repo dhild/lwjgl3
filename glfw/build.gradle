@@ -1,0 +1,11 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: http://lwjgl.org/license.php
+ */
+
+dependencies {
+    compile project(':core')
+    compile project(':opengl')
+}
+
+generate.args 'org.lwjgl.glfw'

@@ -1,0 +1,10 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: http://lwjgl.org/license.php
+ */
+
+dependencies {
+    compile project(':core')
+}
+
+generate.args 'org.lwjgl.mantle'

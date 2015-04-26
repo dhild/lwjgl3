@@ -18,128 +18,141 @@ buildscript {
     }
 }
 
+allprojects {
 //MAJOR.MINOR.REVISION
 //[0-9].[0-9].[0-9]+[ab]?
-version = '3.0.0a'
+    version = '3.0.0a'
 
-ext {
-    buildType = hasProperty('LWJGL_BUILD_TYPE') ? getProperty('LWJGL_BUILD_TYPE') : 'stable'
-    isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
-    isLinux = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)
-    isMac = Os.isFamily(Os.FAMILY_MAC)
+    ext {
+        buildType = hasProperty('LWJGL_BUILD_TYPE') ? getProperty('LWJGL_BUILD_TYPE') : 'stable'
+        isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+        isLinux = Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)
+        isMac = Os.isFamily(Os.FAMILY_MAC)
 
-    // x86 is not in the original build script for Mac
-    jvmArch = (isMac || System.getProperty("os.arch") == 'amd64') ? 'x64' : 'x86'
-    osName = isWindows ? 'windows' : (isLinux ? 'linux' : (isMac ? 'macosx' : 'UNKNOWN'))
+        // x86 is not in the original build script for Mac
+        jvmArch = (isMac || System.getProperty("os.arch") == 'amd64') ? 'x64' : 'x86'
+        osName = isWindows ? 'windows' : (isLinux ? 'linux' : (isMac ? 'macosx' : 'UNKNOWN'))
+    }
 }
 
-apply plugin: 'java'
-apply plugin: 'kotlin'
-
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src/core', 'src/util', 'generated/java']
-        }
+subprojects {
+    repositories {
+        mavenCentral()
     }
-    test {
-        java {
-            srcDirs = ['src/tests']
-        }
-    }
-    templates {
-        java {
-            srcDirs = ['src/templates', 'config']
+    apply plugin: 'java'
+    apply plugin: 'kotlin'
+
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+
+    afterEvaluate {
+        tasks.withType(JavaCompile) {
+            options.encoding = 'UTF-8'
         }
     }
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-
-configurations {
-    kotlinRuntime
-}
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    templatesCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    kotlinRuntime "org.jetbrains.kotlin:kotlin-runtime:$kotlinVersion"
-    templatesCompile files("${System.properties['java.home']}/../lib/tools.jar")
-    compile files("${System.properties['java.home']}/../lib/tools.jar")
-
-    testCompile "org.testng:testng:$testngVersion"
-}
-
-sourceSets.main.compileClasspath += sourceSets.templates.output
-
-task generate(type: JavaExec) {
-    doFirst {
-        file('generated').mkdirs()
-    }
-    dependsOn 'compileTemplatesJava'
-    dependsOn 'compileTemplatesKotlin'
-    classpath configurations.templatesCompile
-    classpath configurations.kotlinRuntime
-    classpath sourceSets.templates.output.classesDir
-    main = "org.lwjgl.generator.GeneratorPackage"
-
-    args "${file('src/templates')}"
-    args "${file('generated')}"
-}
-
-compileJava {
-    dependsOn 'generate'
-    // Supresses internal API (e.g. Unsafe) usage warnings
-    options.compilerArgs << "-XDignore.symbol.file=true"
-    options.fork = true
-}
-
-test {
-    useTestNG { // According to the docs, this option should come first.
-        suites 'config/tests.xml'
-        suites "config/tests_${osName}.xml"
+configure(subprojects.findAll {it.name != 'generator'}) {
+    sourceSets {
+        templates // Actual sources are in the generator project
+        main.java.srcDirs += 'src/generated/java'
     }
 
-    jvmArgs '-Xcheck:jni'
-    enableAssertions = true
-    systemProperty 'org.lwjgl.util.Debug', 'true'
-    if ( isMac ) {
-        jvmArgs '-XstartOnFirstThread'
-        // Only one arch for Mac right now, which changes the library output directory.
-        dependsOn 'debugLwjglSharedLibrary'
-        systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
-                             "$buildDir/libs/macosx/x64").asPath
-    } else {
-        dependsOn "${jvmArch}DebugLwjglSharedLibrary"
-        systemProperty 'java.library.path',
-                       files("$buildDir/binaries/lwjglSharedLibrary/${jvmArch}Debug",
-                             "$buildDir/libs/$osName/$jvmArch").asPath
+    dependencies {
+        templatesCompile project(':generator')
     }
-}
 
-javadoc {
-    title "LWJGL $version"
-    options {
-        encoding 'utf8'
-        docEncoding 'utf8'
-        noHelp true
-        noTree true
-        doclet "org.lwjgl.system.ExcludeDoclet"
-        docletpath file("$buildDir/classes/templates"), file("$buildDir/kotlin-classes/templates")
-        docTitle '<h1>Lightweight Java Game Library</h1>'
-        bottom '<i>Copyright LWJGL. All Rights Reserved. <a href="http://lwjgl.org/license.php">License terms</a>.</i>'
+    task generate(type: JavaExec) {
+        doFirst {
+            file("src/generated").mkdirs()
+        }
+        classpath sourceSets.templates.runtimeClasspath
+        main = "org.lwjgl.generator.GeneratorPackage"
+
+        args "${file("${rootProject.projectDir}/generator/src/main/kotlin")}"
+        args "${file('src/generated')}"
     }
-    source 'src/core', 'src/util', 'generated/java'
+    sourceSets.main.compileClasspath += sourceSets.templates.output
+
+    compileJava {
+        dependsOn 'generate'
+        options.fork = true
+    }
+
+    /*
+     * Native Library Configuration:
+     */
+
+    apply plugin: 'c'
+
+    task updateExternalLibsX64
+    task updateExternalLibsX86
+
+    model {
+        buildTypes {
+            debug
+            release
+        }
+        platforms {
+            if ( isWindows || isLinux ) {
+                x86 {
+                    architecture "x86"
+                }
+            }
+            x64 {
+                architecture "x86_64"
+            }
+        }
+    }
+
+    afterEvaluate {
+        tasks.withType(LinkSharedLibrary) {
+            dependsOn 'updateExternalLibsX64'
+            if ( isWindows || isLinux ) {
+                dependsOn 'updateExternalLibsX86'
+            }
+        }
+    }
 }
+//
+//test {
+//    useTestNG { // According to the docs, this option should come first.
+//        suites 'config/tests.xml'
+//        suites "config/tests_${osName}.xml"
+//    }
+//
+//    jvmArgs '-Xcheck:jni'
+//    enableAssertions = true
+//    systemProperty 'org.lwjgl.util.Debug', 'true'
+//    if ( isMac ) {
+//        jvmArgs '-XstartOnFirstThread'
+//        // Only one arch for Mac right now, which changes the library output directory.
+//        dependsOn 'debugLwjglSharedLibrary'
+//        systemProperty 'java.library.path',
+//                       files("$buildDir/binaries/lwjglSharedLibrary/debug",
+//                             "$buildDir/libs/macosx/x64").asPath
+//    } else {
+//        dependsOn "${jvmArch}DebugLwjglSharedLibrary"
+//        systemProperty 'java.library.path',
+//                       files("$buildDir/binaries/lwjglSharedLibrary/${jvmArch}Debug",
+//                             "$buildDir/libs/$osName/$jvmArch").asPath
+//    }
+//}
+//
+//javadoc {
+//    title "LWJGL $version"
+//    options {
+//        encoding 'utf8'
+//        docEncoding 'utf8'
+//        noHelp true
+//        noTree true
+//        doclet "org.lwjgl.system.ExcludeDoclet"
+//        docletpath file("$buildDir/classes/templates"), file("$buildDir/kotlin-classes/templates")
+//        docTitle '<h1>Lightweight Java Game Library</h1>'
+//        bottom '<i>Copyright LWJGL. All Rights Reserved. <a href="http://lwjgl.org/license.php">License terms</a>.</i>'
+//    }
+//    source 'src/core', 'src/util', 'generated/java'
+//}
 
 /*
  * Releasable artifact configuration:
@@ -174,43 +187,43 @@ task downloadReleaseBinaries << {
     downloadFile("http://build.lwjgl.org/$buildType/macosx/x64/libopenal.dylib", "$releaseNativeDir/macosx/x64/libopenal.dylib")
 }
 
-task javadocZip(type: Zip) {
-    doFirst {
-        file(releaseDocDir).mkdirs()
-    }
-    from javadoc.outputs
-    destinationDir = file(releaseDocDir)
-    archiveName = 'javadoc.zip'
-}
-
-task sourcesZip(type: Zip) {
-    doFirst {
-        file(releaseDir).mkdirs()
-    }
-    from "src/core"
-    from "generated/java"
-    destinationDir = file(releaseDir)
-    archiveName = 'src.zip'
-}
-
-task release {
-    dependsOn 'jar'
-    dependsOn 'downloadReleaseBinaries'
-    dependsOn 'javadocZip'
-    dependsOn 'sourcesZip'
-    doLast {
-        copy {
-            from jar.outputs
-            into releaseJarDir
-        }
-        copy {
-            from "doc"
-            include "LICENSE.txt"
-            include "3rdparty/**"
-            into releaseDocDir
-        }
-    }
-}
+//task javadocZip(type: Zip) {
+//    doFirst {
+//        file(releaseDocDir).mkdirs()
+//    }
+//    from javadoc.outputs
+//    destinationDir = file(releaseDocDir)
+//    archiveName = 'javadoc.zip'
+//}
+//
+//task sourcesZip(type: Zip) {
+//    doFirst {
+//        file(releaseDir).mkdirs()
+//    }
+//    from "src/core"
+//    from "generated/java"
+//    destinationDir = file(releaseDir)
+//    archiveName = 'src.zip'
+//}
+//
+//task release {
+//    dependsOn 'jar'
+//    dependsOn 'downloadReleaseBinaries'
+//    dependsOn 'javadocZip'
+//    dependsOn 'sourcesZip'
+//    doLast {
+//        copy {
+//            from jar.outputs
+//            into releaseJarDir
+//        }
+//        copy {
+//            from "doc"
+//            include "LICENSE.txt"
+//            include "3rdparty/**"
+//            into releaseDocDir
+//        }
+//    }
+//}
 
 /*
  * Native Library Configuration:

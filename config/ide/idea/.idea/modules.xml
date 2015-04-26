@@ -3,10 +3,16 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Core.iml" filepath="$PROJECT_DIR$/Core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Templates.iml" filepath="$PROJECT_DIR$/Templates.iml" />
       <module fileurl="file://$PROJECT_DIR$/Tests.iml" filepath="$PROJECT_DIR$/Tests.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Utilities.iml" filepath="$PROJECT_DIR$/Utilities.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../core/core.iml" filepath="$PROJECT_DIR$/../../../core/core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../generator/generator.iml" filepath="$PROJECT_DIR$/../../../generator/generator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../glfw/glfw.iml" filepath="$PROJECT_DIR$/../../../glfw/glfw.iml" />
       <module fileurl="file://$PROJECT_DIR$/lwjgl3.iml" filepath="$PROJECT_DIR$/lwjgl3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../mantle/mantle.iml" filepath="$PROJECT_DIR$/../../../mantle/mantle.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../openal/openal.iml" filepath="$PROJECT_DIR$/../../../openal/openal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../opencl/opencl.iml" filepath="$PROJECT_DIR$/../../../opencl/opencl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../opengl/opengl.iml" filepath="$PROJECT_DIR$/../../../opengl/opengl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../ovr/ovr.iml" filepath="$PROJECT_DIR$/../../../ovr/ovr.iml" />
     </modules>
   </component>
 </project>

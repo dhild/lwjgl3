@@ -1,0 +1,120 @@
+/*
+ * Copyright LWJGL. All rights reserved.
+ * License terms: http://lwjgl.org/license.php
+ */
+
+compileJava {
+    // Supresses internal API (e.g. Unsafe) usage warnings
+    options.compilerArgs << "-XDignore.symbol.file=true"
+}
+
+generate.args 'org.lwjgl.system.libffi'
+generate.args 'org.lwjgl.system.linux'
+generate.args 'org.lwjgl.system.macosx'
+generate.args 'org.lwjgl.system.windows'
+
+ext {
+    libffiName = isWindows ? 'libffi.lib' : (isLinux ? 'libffi.a' : (isMac ? 'libffi.a' : 'UNKNOWN_libffi'))
+}
+
+updateExternalLibsX64 {
+    outputs.file("$buildDir/libs/$osName/x64/$libffiName")
+    doLast {
+        file("$buildDir/libs/$osName/x64").mkdirs()
+        OutputStream dest = file("$buildDir/libs/$osName/x64/$libffiName").newOutputStream()
+        dest << new URL("http://s3.amazonaws.com/build.lwjgl.org/stable/$osName/x64/$libffiName").openStream()
+        dest.close()
+    }
+}
+
+updateExternalLibsX86 {
+    outputs.file("$buildDir/libs/$osName/x86/$libffiName")
+    doLast {
+        file("$buildDir/libs/$osName/x86").mkdirs()
+        OutputStream dest = file("$buildDir/libs/$osName/x86/$libffiName").newOutputStream()
+        dest << new URL("http://s3.amazonaws.com/build.lwjgl.org/stable/$osName/x86/$libffiName").openStream()
+        dest.close()
+    }
+}
+
+model {
+    repositories {
+        libs(PrebuiltLibraries) {
+            libffi {
+                binaries.withType(StaticLibraryBinary) {
+                    staticLibraryFile = file("$buildDir/libs/$osName/${targetPlatform.name}/$libffiName")
+                }
+            }
+        }
+    }
+    components {
+        core(NativeLibrarySpec) {
+            if ( isWindows || isLinux ) {
+                targetPlatform "x86"
+            }
+            targetPlatform "x64"
+            sources.c {
+                source {
+                    srcDir 'src/main/native/system'
+                    srcDir 'src/main/native/system/libffi'
+                    srcDir 'src/generated/native/system'
+                    srcDir 'src/generated/native/system/libffi'
+                    srcDir "src/generated/native/system/$osName"
+                    if ( isMac ) {
+                        include '*.m'
+                        exclude '*CL20.c'
+                    }
+                    include '*.c'
+                }
+            }
+            binaries.all {
+                lib library: 'libffi', linkage: 'static'
+                if ( toolChain in VisualCpp ) {
+                    cCompiler.define "LWJGL_WINDOWS"
+                    cCompiler.args "/Wall", "/WX", "/wd4996", "/EHsc", "/Ox", "/Gy", "/MT", "/MP", "/nologo"
+                    cCompiler.args "/I${file('src/main/native/system')}"
+                    cCompiler.args "/I${file('src/main/native/system/windows')}"
+                    cCompiler.args "/I${file('src/main/native/system/libffi')}"
+                    cCompiler.args "/I${System.properties['java.home']}/../include"
+                    cCompiler.args "/I${System.properties['java.home']}/../include/win32"
+                    linker.args '/WX', '/nologo', '/OPT:REF,ICF', '/DLL'
+                    linker.args 'Kernel32.lib', 'user32.lib', 'Gdi32.lib', 'winmm.lib', 'shell32.lib', 'OpenGL32.Lib'
+                }
+                if ( toolChain in Gcc || toolChain in Clang ) {
+                    if ( isLinux ) {
+                        cCompiler.define "LWJGL_LINUX"
+                        cCompiler.define "_XOPEN_SOURCE=700"
+                        cCompiler.args "-std=c11", "-pthread"
+                        cCompiler.args "-I${file('src/main/native/system/linux')}"
+                        cCompiler.args "-I${System.properties['java.home']}/../include"
+                        cCompiler.args "-I${System.properties['java.home']}/../include/linux"
+
+                        linker.args "-lm", "-lpthread", "-lX11", "-lGL", "-lXi", "-lXrandr", "-lXxf86vm", "-lXinerama", "-lXcursor"
+                        linker.args "-fPIC", "-pthread", "-Xlinker", "--version-script", "-Xlinker", "${file('config/linux/version.script')}"
+                    }
+                    if ( isMac ) {
+                        cCompiler.define "LWJGL_MACOSX"
+                        cCompiler.args "-I${System.properties['java.home']}/../include"
+                        cCompiler.args "-I${System.properties['java.home']}/../include/darwin"
+                        cCompiler.args "-std=c99", "-I${file('src/main/native/system/macosx')}"
+                        cCompiler.args '-Wno-deprecated'
+
+                        // TODO: Figure out how to handle:
+                        // compiler args: -isysroot ${sdkroot} -mmacosx-version-min=${macosx-version-min}
+                        // linker args: -mmacosx-version-min=${macosx-version-min}
+
+                        linker.args "-Wl,-no_compact_unwind"
+                        linker.args '-framework', 'AppKit'
+                        linker.args '-framework', 'CoreVideo'
+                        linker.args '-framework', 'IOKit'
+                        linker.args '-framework', 'OpenGL'
+                    }
+                    cCompiler.args "-O3", "-fPIC"
+                    cCompiler.args "-Werror", "-Wfatal-errors", "-Wall", "-Wextra", "-pedantic", "-Wno-extended-offsetof"
+                    cCompiler.args "-I${file('src/main/native/system')}"
+                    cCompiler.args "-I${file('src/main/native/system/libffi')}"
+                }
+            }
+        }
+    }
+}

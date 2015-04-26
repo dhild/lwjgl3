@@ -3,3 +3,12 @@
  * License terms: http://lwjgl.org/license.php
  */
 rootProject.name = 'lwjgl3'
+
+include 'generator'
+include 'core'
+include 'glfw'
+include 'openal'
+include 'opencl'
+include 'opengl'
+include 'ovr'
+include 'mantle'
